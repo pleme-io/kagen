@@ -1,0 +1,47 @@
+[package]
+name = "kagen"
+version = "0.0.1"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/pleme-io/kagen"
+description = "kagen (加減, 'adjustment by degrees') — the fleet's tier-governor primitive. A two-sided dead-band Zone classifier, a Ladder<T> over a derive-emitted variant registry, and a Governor<T> whose hysteresis (asymmetric streaks + dead band + neutral reset) makes tier oscillation structurally hard. The half of a homeostasis loop that selects a named quality rung, sibling to breathe-control's scalar band law."
+
+[dependencies]
+# Intentionally dependency-free, exactly as `zenmai` and `breathe-control` are.
+#
+# Two reasons, in order of weight, and NEITHER is "breathe-control is not on
+# crates.io" — that is true today but it is a symptom (breathe never adopted the
+# AUTO-RELEASE shim; Actions work, nothing is blocked), not a property of the
+# design, and building an architecture on someone else's unadopted shim would be
+# the local fix rather than the load-bearing one.
+#
+#   1. COST AT THE TICK. A governor runs inside a render loop — thousands of
+#      times a second on a multi-knob 120 Hz consumer. `breathe-control` is the
+#      right neighbour, but a crate at this altitude should be linkable by a
+#      compositor, a terminal and a controller alike without any of them
+#      inheriting a dependency they do not tick.
+#   2. DIRECTION. The classifier is the *general* thing and the band law is one
+#      of its two consumers, so the edge should run band-law -> classifier.
+#      `BandLaw::propose` can adopt `kagen::zone` and delete its own copy; the
+#      reverse would leave the shared function owned by one of the two callers.
+#
+# `zenmai` (the fleet Mealy-machine primitive) IS published, and the `zenmai`
+# feature below wires `Governor` into it without putting it in the default path.
+
+[features]
+default = []
+# `impl zenmai::Machine for Governor<T>` — the FSM half expressed in the fleet's
+# shared reducer vocabulary, so `Stateful`/`Driver`/`assert_total_inert` all
+# apply. Off by default so the hot path stays allocation-free (see governor.rs).
+zenmai = ["dep:zenmai"]
+
+[dependencies.zenmai]
+version = "0.0.2"
+optional = true
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "deny"
+
+[lints.clippy]
+pedantic = { level = "deny", priority = -1 }
