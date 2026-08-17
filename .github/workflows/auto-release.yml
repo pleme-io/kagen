@@ -1,0 +1,37 @@
+# ★★ AUTO-RELEASE — ship on merge, default-on (the canonical consumer shim).
+#
+# `cargo-` and not `rust-`: kagen is a SINGLE crate — its Cargo.toml has a
+# [package] and no [workspace] — which is the same shape as zenmai, the
+# dependency-free primitive this one sits beside. (`rust-auto-release.yml`
+# assumes a workspace-level bump; `cargo-publish-each-member-...` assumes
+# independently-versioned members. Both are the wrong shape here.)
+#
+# Called DIRECTLY rather than through the polymorphic `auto-release.yml`: that
+# shim startup_failure's for every consumer — GitHub creates the run with 0 jobs
+# and no annotations — so a release through it never even starts.
+#
+# Publish surface is clean by construction: kagen has NO registry-blocking
+# dependencies. The default feature set is dependency-free, and the one optional
+# dep (`zenmai`, for the Machine impl) is a published crates.io version
+# (0.0.2), not a git pin — a git dependency in a published crate is a hard
+# publish blocker, and this crate deliberately has none.
+#
+# TIER-HONEST: a committed shim proves ADOPTION, never a RUN. Until a green run
+# exists here, treat this as Tier ⊥ (*unreached*) — do not cite it as
+# "kagen auto-releases".
+name: auto-release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump-type:
+        description: "patch | minor | major"
+        required: false
+        default: patch
+
+jobs:
+  release:
+    uses: pleme-io/substrate/.github/workflows/cargo-auto-release.yml@main
+    secrets: inherit
